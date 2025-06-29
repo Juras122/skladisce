@@ -5,7 +5,7 @@ const teloTabele = document.getElementById('teloTabele');
 // Base URL for your Flask API
 // IMPORTANT: You MUST replace 'YOUR_RENDER_APP_URL_HERE' with your actual Render app URL
 // e.g., 'https://skladi-app.onrender.com/api'
-const API_BASE_URL = 'YOUR_RENDER_APP_URL_HERE/api'; // <--- IMPORTANT: CHANGE THIS AFTER DEPLOYMENT
+const API_BASE_URL = 'https://skladi-data-disk.onrender.com/api'; // <--- IMPORTANT: CHANGE THIS AFTER DEPLOYMENT
 
 // Cache for storing original values during edit (to revert on cancel)
 const originalValues = {}; // Stores { itemId: { ime, lokacija, komentar } }
