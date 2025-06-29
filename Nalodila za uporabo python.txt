@@ -1,0 +1,168 @@
+This is a great goal\! To achieve this, you'll need to modify your Arduino code to send the data in a structured format over the serial port, and then write a Python script to read that data and save it into separate .txt files for each ID.
+
+Here's how you can do it:
+
+-----
+
+## Arduino Code (Modified)
+
+The key change here is to format your serial output so Python can easily parse it. I recommend sending data as `ID:Value` pairs, separated by a comma or newline. For simplicity, let's use a comma for the pairs and a newline at the end of each complete set of readings.
+
+```arduino
+void setup() {
+  Serial.begin(9600); // Ensure this matches your Python script's baud rate
+}
+
+void loop() {
+  int S010000_val, S010001_val, S010002_val, S010003_val, S010004_val, S010005_val;
+
+  // Read analog values
+  S010000_val = analogRead(A0);
+  S010001_val = analogRead(A1);
+  S010002_val = analogRead(A2);
+  S010003_val = analogRead(A3);
+  S010004_val = analogRead(A4);
+  S010005_val = analogRead(A5);
+
+  // Print data in "ID:Value" format, separated by commas
+  Serial.print("S010000:");
+  Serial.print(S010000_val);
+  Serial.print(",");
+  Serial.print("S010001:");
+  Serial.print(S010001_val);
+  Serial.print(",");
+  Serial.print("S010002:");
+  Serial.print(S010002_val);
+  Serial.print(",");
+  Serial.print("S010003:");
+  Serial.print(S010003_val);
+  Serial.print(",");
+  Serial.print("S010004:");
+  Serial.print(S010004_val);
+  Serial.print(",");
+  Serial.print("S010005:");
+  Serial.print(S010005_val);
+  Serial.println(); // Newline after all data for easier parsing in Python
+
+  delay(3000); // Wait for 3 seconds before the next reading
+}
+```
+
+-----
+
+## Python Script
+
+This script will read data from the serial port, parse it, and then append the values to separate `.txt` files named after each ID (e.g., `S010000.txt`).
+
+### Prerequisites
+
+You'll need the `pyserial` library. If you don't have it, install it using pip:
+
+```bash
+pip install pyserial
+```
+
+### Python Code
+
+```python
+import serial
+import time
+import os
+
+# --- Configuration ---
+SERIAL_PORT = 'COM3'  # Replace with your Arduino's serial port (e.g., '/dev/ttyUSB0' on Linux, 'COM3' on Windows)
+BAUD_RATE = 9600      # Must match your Arduino sketch's baud rate
+DATA_DIRECTORY = 'arduino_data' # Directory to save the data files
+
+# Create the data directory if it doesn't exist
+if not os.path.exists(DATA_DIRECTORY):
+    os.makedirs(DATA_DIRECTORY)
+    print(f"Created directory: {DATA_DIRECTORY}")
+
+def setup_serial():
+    """Establishes and returns a serial connection."""
+    try:
+        ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+        print(f"Connected to {SERIAL_PORT} at {BAUD_RATE} baud.")
+        time.sleep(2)  # Give some time for the serial connection to establish
+        return ser
+    except serial.SerialException as e:
+        print(f"Error opening serial port: {e}")
+        print("Please check if the Arduino is connected and the port is correct.")
+        return None
+
+def process_data(line):
+    """Parses a line of data and returns a dictionary of IDs and values."""
+    data = {}
+    parts = line.strip().split(',')
+    for part in parts:
+        if ':' in part:
+            id_val = part.split(':')
+            if len(id_val) == 2:
+                data[id_val[0]] = id_val[1]
+    return data
+
+def save_data(data):
+    """Saves each ID's value to its respective text file."""
+    for id_name, value in data.items():
+        file_path = os.path.join(DATA_DIRECTORY, f"{id_name}.txt")
+        try:
+            with open(file_path, 'a') as f: # 'a' for append mode
+                f.write(value + '\n')
+            print(f"Saved {id_name}: {value} to {file_path}")
+        except IOError as e:
+            print(f"Error writing to file {file_path}: {e}")
+
+def main():
+    ser = setup_serial()
+    if not ser:
+        return
+
+    try:
+        while True:
+            if ser.in_waiting > 0:
+                line = ser.readline().decode('utf-8').strip()
+                if line: # Ensure the line is not empty
+                    print(f"Received: {line}")
+                    parsed_data = process_data(line)
+                    if parsed_data:
+                        save_data(parsed_data)
+            time.sleep(0.1) # Small delay to prevent busy-waiting
+    except KeyboardInterrupt:
+        print("\nExiting program.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+    finally:
+        if ser and ser.is_open:
+            ser.close()
+            print("Serial connection closed.")
+
+if __name__ == "__main__":
+    main()
+```
+
+-----
+
+## How to Use
+
+1.  **Upload Arduino Code:** Copy and paste the modified Arduino code into your Arduino IDE and upload it to your Arduino board.
+2.  **Find Your Serial Port:**
+      * **Windows:** Go to Device Manager, expand "Ports (COM & LPT)", and look for your Arduino (e.g., "Arduino Uno (COM3)").
+      * **Linux/macOS:** Open a terminal and type `ls /dev/tty.*` or `ls /dev/cu.*` for macOS, or `ls /dev/ttyACM*` or `ls /dev/ttyUSB*` for Linux.
+      * **Update `SERIAL_PORT` in the Python script** with the correct port you found.
+3.  **Run Python Script:** Open a terminal or command prompt, navigate to the directory where you saved the Python script, and run it:
+    ```bash
+    python your_script_name.py
+    ```
+
+You'll see output in your terminal indicating data reception and saving. In the same directory as your Python script, a new folder named `arduino_data` will be created, and inside it, you'll find `.txt` files for each `S01000X` ID, with each file containing a history of its recorded values.
+
+-----
+
+## Next Steps
+
+  * **Error Handling:** You could add more robust error handling in the Python script, especially for corrupted serial data.
+  * **Timestamping:** To make your data more useful, consider adding a timestamp to each value as it's saved. You could do this in Python before writing to the file, or even send a timestamp from the Arduino if its real-time clock is set up.
+  * **Data Visualization:** Once you have the data in text files, you could use Python libraries like `matplotlib` or `pandas` to analyze and visualize the trends over time.
+
+Let me know if you have any other questions or would like to explore specific enhancements\!

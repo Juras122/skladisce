@@ -1,0 +1,4 @@
+Flask
+Flask-Cors
+gunicorn
+requests # Although server doesn't use requests directly, if you modify it later to make external calls, it's good to have.

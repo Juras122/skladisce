@@ -1,0 +1,350 @@
+This is an exciting step\! You're looking to integrate real-time (or near real-time) data from a physical source (Arduino via Python serial) into your web application.
+
+To achieve this, you'll need a **backend server** that can:
+
+1.  **Run your Python script.**
+2.  **Read the data** from the `.txt` files.
+3.  **Serve that data** to your web browser (frontend) when requested.
+
+Your current HTML/CSS/JavaScript setup is purely client-side, meaning it runs entirely in the user's browser and cannot directly access local files (like your `arduino_data` directory) due to browser security restrictions.
+
+-----
+
+## The Solution: Introducing a Web Server
+
+You need a server-side component to bridge the gap between your Python script writing to `.txt` files and your web browser displaying that data.
+
+Here's the architectural overview and how to implement it:
+
+1.  **Python Script (`sensor_reader.py` - your existing code):** This script will continue to run and write sensor data to `.txt` files (e.g., `arduino_data/ID1.txt`, `arduino_data/ID2.txt`).
+2.  **Web Server (e.g., Python Flask):** This will be a new Python script that acts as a web server.
+      * It will expose an API endpoint (e.g., `/api/data/<id>`) that your frontend can request.
+      * When a request comes in, this server will read the *latest value* from the corresponding `.txt` file.
+      * It will return this value (and possibly the timestamp) to the frontend.
+3.  **Frontend (Your HTML/JS):**
+      * The "Količina" (Quantity) column will fetch its data from the web server's API.
+      * We'll use **JavaScript's `fetch()` API** and `setInterval` to periodically request the latest data and update the table.
+
+-----
+
+## Step-by-Step Implementation
+
+### Step 1: Ensure Your Python Serial Reader Works
+
+Make sure your existing Python code (let's save it as `sensor_reader.py`) is correctly configured and successfully writes data to files like `arduino_data/ID1.txt`, `arduino_data/ID2.txt`, etc., with lines looking like `YYYY-MM-DD HH:MM:SS,VALUE`.
+
+For example, if your Arduino sends `ID1:123,ID2:456`, your `sensor_reader.py` should create:
+
+  * `arduino_data/ID1.txt` with `2025-06-27 17:30:00,123`
+  * `arduino_data/ID2.txt` with `2025-06-27 17:30:00,456`
+
+**Important:** Your Arduino output format `ID:value` needs to be consistently producing the IDs you expect in your table. If `količina` maps to `ID1` from your Arduino, that's what you'll fetch.
+
+-----
+
+### Step 2: Create a Simple Web Server (Flask Example)
+
+We'll use Flask, a lightweight Python web framework.
+
+**a. Installation:**
+If you don't have Flask installed, open your terminal or command prompt and run:
+
+```bash
+pip install Flask
+```
+
+**b. Create `server.py` (in your project root, alongside `sensor_reader.py` and `arduino_data`):**
+
+```python
+from flask import Flask, jsonify, send_from_directory
+from flask_cors import CORS # To allow requests from your frontend HTML
+import os
+
+app = Flask(__name__)
+# Enable CORS for your frontend to be able to fetch from this server
+CORS(app) # This will allow all origins for simplicity in development.
+          # In production, specify origins: CORS(app, origins=["http://127.0.0.1:5500"]) if using Live Server.
+
+DATA_DIRECTORY = 'arduino_data' # Must match the directory in sensor_reader.py
+
+# Ensure the data directory exists
+if not os.path.exists(DATA_DIRECTORY):
+    os.makedirs(DATA_DIRECTORY)
+    print(f"Server: Created data directory {DATA_DIRECTORY}")
+
+@app.route('/')
+def index():
+    # Serve your main HTML file
+    # Assuming your index.html is in a 'templates' folder or the root
+    return send_from_directory('.', 'index.html') # Or 'templates/index.html'
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    # Serve static files like CSS, JS, images
+    return send_from_directory('.', filename) # Adjust if your static files are in 'static' or other folders
+
+@app.route('/api/items')
+def get_all_items_latest_data():
+    """
+    Reads the latest quantity for all known IDs from their respective .txt files.
+    This assumes you have a way to know all possible IDs.
+    For this example, we'll just list files in the arduino_data directory.
+    In a real app, IDs would likely come from a database.
+    """
+    items_data = []
+    # Discover IDs based on existing .txt files in the data directory
+    for filename in os.listdir(DATA_DIRECTORY):
+        if filename.endswith('.txt'):
+            item_id = filename.replace('.txt', '') # e.g., 'ID1' from 'ID1.txt'
+            file_path = os.path.join(DATA_DIRECTORY, filename)
+            try:
+                with open(file_path, 'r') as f:
+                    lines = f.readlines()
+                    if lines:
+                        # Get the last line
+                        last_line = lines[-1].strip()
+                        # Split by comma to get timestamp and value
+                        parts = last_line.split(',')
+                        if len(parts) == 2:
+                            timestamp_str, value = parts
+                            items_data.append({
+                                'id': item_id,
+                                'ime': f"Izdelek {item_id}", # Placeholder name
+                                'kolicina': value,
+                                'lokacija': f"L {item_id}", # Placeholder location
+                                'komentar': f"Podatki iz senzorja {item_id}", # Placeholder comment
+                                'timestamp': timestamp_str
+                            })
+            except IOError as e:
+                print(f"Server: Error reading file {file_path}: {e}")
+                continue # Skip to the next file
+    
+    return jsonify(items_data)
+
+@app.route('/api/item/<string:item_id>')
+def get_item_latest_data(item_id):
+    """
+    Reads the latest quantity for a specific ID from its .txt file.
+    """
+    file_path = os.path.join(DATA_DIRECTORY, f"{item_id}.txt")
+    if not os.path.exists(file_path):
+        return jsonify({'error': f'File for ID {item_id} not found.'}), 404
+
+    try:
+        with open(file_path, 'r') as f:
+            lines = f.readlines()
+            if lines:
+                last_line = lines[-1].strip()
+                parts = last_line.split(',')
+                if len(parts) == 2:
+                    timestamp_str, value = parts
+                    return jsonify({
+                        'id': item_id,
+                        'ime': f"Izdelek {item_id}", # Placeholder name
+                        'kolicina': value,
+                        'lokacija': f"L {item_id}", # Placeholder location
+                        'komentar': f"Podatki iz senzorja {item_id}", # Placeholder comment
+                        'timestamp': timestamp_str
+                    })
+            return jsonify({'error': f'No data found for ID {item_id}.'}), 404
+    except IOError as e:
+        return jsonify({'error': f'Error reading file for ID {item_id}: {e}'}), 500
+
+if __name__ == '__main__':
+    # You might want to run this in a separate terminal from sensor_reader.py
+    # or manage them with a process manager like pm2 or systemd.
+    print("Starting Flask server...")
+    print(f"Data directory being monitored: {os.path.abspath(DATA_DIRECTORY)}")
+    app.run(debug=True, port=5000) # Runs on http://127.0.0.1:5000
+```
+
+**c. Running the Server:**
+Open a new terminal/command prompt, navigate to your project directory, and run:
+
+```bash
+python server.py
+```
+
+This will start your web server, usually on `http://127.0.0.1:5000`.
+
+-----
+
+### Step 3: Modify Your Frontend JavaScript (`script/Home.js`)
+
+Now, we'll change your `Home.js` to fetch data from the Flask server instead of prompting the user. The "Dodaj element" button will likely change its purpose, or be removed, as the quantity data will come from sensors.
+
+Let's assume "Količina" is linked to the data coming from your Python script, and other fields like "ID", "Ime", "Lokacija", "Komentar" are either derived from the sensor ID or manually managed. For this example, we'll initially load and then periodically update the table using the data from the server.
+
+```javascript
+// Get references to the button and the table body
+const dodajElementBtn = document.getElementById('dodajElementBtn'); // We might repurpose this or remove it later
+const teloTabele = document.getElementById('teloTabele');
+
+// Base URL for your Flask API
+const API_BASE_URL = 'http://127.0.0.1:5000/api'; // Or your deployed server address
+
+// Helper function to append or update a row in the table
+function updateOrCreateRow(item) {
+    let row = document.getElementById(`item-row-${item.id}`);
+
+    if (!row) {
+        // If row doesn't exist, create it
+        row = document.createElement('tr');
+        row.id = `item-row-${item.id}`; // Give the row an ID for easy lookup
+        teloTabele.appendChild(row);
+    }
+
+    // Update the row's content
+    row.innerHTML = `
+        <td data-label="ID">${item.id}</td>
+        <td data-label="Ime">${item.ime}</td>
+        <td data-label="Količina">${item.kolicina}</td>
+        <td data-label="Lokacija">${item.lokacija}</td>
+        <td data-label="Komentar">${item.komentar || ''}</td>
+        <td data-label="Akcija">
+            <button class="urediBtn" data-id="${item.id}">Uredi</button>
+            <button class="izbrisiBtn" data-id="${item.id}">Izbriši</button>
+        </td>
+    `;
+
+    // Re-attach event listeners for "Uredi" and "Izbrisi" on the new/updated row
+    const urediBtn = row.querySelector('.urediBtn');
+    const izbrisiBtn = row.querySelector('.izbrisiBtn');
+
+    urediBtn.onclick = () => { // Using onclick for simplicity, addEventListener is better for multiple handlers
+        alert(`Funkcija urejanja za ID: ${item.id} (Ime: ${item.ime}) bo kmalu na voljo!`);
+        // For real editing, you'd load a form/modal with item.id to edit on server
+    };
+
+    izbrisiBtn.onclick = async () => {
+        if (confirm(`Ali ste prepričani, da želite izbrisati element z ID: ${item.id}?`)) {
+            // In a real application, you'd send a DELETE request to your server here
+            // e.g., fetch(`${API_BASE_URL}/items/${item.id}`, { method: 'DELETE' });
+            // For now, we'll just remove from UI
+            row.remove();
+            alert(`Element z ID: ${item.id} je izbrisan iz tabele (samo vizualno).`);
+        }
+    };
+}
+
+
+// Function to fetch data from the server and update the table
+async function refreshTableData() {
+    console.log('Fetching latest data...');
+    try {
+        const response = await fetch(`${API_BASE_URL}/items`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const items = await response.json();
+
+        if (items.length === 0) {
+            teloTabele.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Ni podatkov o artiklih v skladišču.</td></tr>';
+        } else {
+            // Keep track of IDs currently in the table
+            const currentTableItemIds = new Set(
+                Array.from(teloTabele.children).map(row => row.id.replace('item-row-', ''))
+            );
+
+            items.forEach(item => {
+                updateOrCreateRow(item);
+                currentTableItemIds.delete(item.id); // Remove from set if updated
+            });
+
+            // Remove any rows that are no longer present in the fetched data
+            currentTableItemIds.forEach(idToRemove => {
+                const rowToRemove = document.getElementById(`item-row-${idToRemove}`);
+                if (rowToRemove) {
+                    rowToRemove.remove();
+                }
+            });
+        }
+
+    } catch (error) {
+        console.error('Napaka pri pridobivanju podatkov:', error);
+        teloTabele.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center; padding: 20px;">Napaka pri nalaganju podatkov: ${error.message}</td></tr>`;
+    }
+}
+
+// Initial load when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    refreshTableData();
+    // Set an interval to refresh data every 5 seconds
+    setInterval(refreshTableData, 5000); // Refresh every 5 seconds
+});
+
+// For the "Dodaj element" button:
+// If "Dodaj element" is meant to add new, *manually entered* items,
+// you'd typically have a form, send a POST request to your server's API,
+// and then refresh the table or add the new item's row.
+// Since 'Količina' now comes from sensor data, this button's purpose might change.
+// For now, let's keep a placeholder prompt or repurpose it.
+dodajElementBtn.addEventListener('click', async () => {
+    alert("Funkcija 'Dodaj element' je spremenjena. Zdaj sistem pričakuje podatke iz senzorja. Če želite dodati element ročno, boste potrebovali namenski obrazec in API endpoint.");
+    // Example: If you wanted to manually add an item to the *server*:
+    // const id = prompt("ID:"); const ime = prompt("Ime:"); // ... and so on
+    // const newItem = { id, ime, kolicina: 0, lokacija: 'Unknown', komentar: 'Manual entry' };
+    // try {
+    //     const response = await fetch(`${API_BASE_URL}/items`, {
+    //         method: 'POST',
+    //         headers: { 'Content-Type': 'application/json' },
+    //         body: JSON.stringify(newItem)
+    //     });
+    //     if (response.ok) {
+    //         refreshTableData(); // Refresh the table to show the new item from the server
+    //     } else {
+    //         alert('Napaka pri ročnem dodajanju elementa na strežnik.');
+    //     }
+    // } catch (e) {
+    //     alert('Napaka pri komunikaciji s strežnikom: ' + e.message);
+    // }
+});
+```
+
+-----
+
+## How to Run Everything:
+
+1.  **Organize your files:**
+
+    ```
+    your-project/
+    ├── arduino_data/
+    │   ├── ID1.txt
+    │   └── ID2.txt
+    │   └── ...
+    ├── images/
+    │   └── LogoNapis.png
+    ├── script/
+    │   └── Home.js
+    ├── style/
+    │   └── Home.css
+    ├── index.html
+    ├── sensor_reader.py  (Your original Python script)
+    └── server.py         (The new Flask server script)
+    ```
+
+2.  **Start your Arduino and `sensor_reader.py`:**
+    Open a terminal/command prompt and run:
+
+    ```bash
+    python sensor_reader.py
+    ```
+
+    Ensure this is continuously running and writing data to your `arduino_data` files.
+
+3.  **Start your Flask web server (`server.py`):**
+    Open a *separate* terminal/command prompt and run:
+
+    ```bash
+    python server.py
+    ```
+
+    It should tell you it's running on `http://127.0.0.1:5000`.
+
+4.  **Open your `index.html`:**
+    Navigate your web browser to `http://127.0.0.1:5000/`. (Since the Flask server is now serving `index.html`.)
+
+Now, your web page will load, and every 5 seconds, it will fetch the latest data from the `.txt` files (via your Flask server) and update the "Količina" and other placeholder fields in your table. If new `ID*.txt` files appear, new rows will be added. If a file disappears, its row will be removed.
+
+This setup provides a robust way to display your sensor data on a web page\!

@@ -1,0 +1,340 @@
+/* Basic Reset & Body Styles */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f7f6; /* Light gray background */
+    color: #333;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Ensure body takes full viewport height */
+}
+
+/* --- Layout Sections --- */
+
+/* Top Bar (ZgornjaVrstica) */
+.ZgornjaVrstica {
+    display: flex;
+    align-items: center;
+    background-color: #ffffff; /* White background for top bar */
+    padding: 15px 30px;
+    color: #2e2d2d; /* Dark gray text */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+.ZgornjaVrstica .Logo {
+    /* flex-shrink: 0; */ /* Already default, good */
+    margin-right: auto; /* Pushes Naslov to center */
+}
+
+.ZgornjaVrstica .Logo img {
+    height: 50px;
+    width: auto;
+    display: block;
+}
+
+.ZgornjaVrstica .Naslov {
+    flex-grow: 1; /* Allows it to take available space */
+    text-align: center;
+}
+
+.ZgornjaVrstica .Naslov h1 {
+    margin: 0;
+    font-size: 2.2em;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: #333; /* Default text color for consistency */
+}
+
+/* Navigation Bar (Opravilnavrstica) - Currently a decorative bar */
+.Opravilnavrstica {
+    background-color: #1f7d2d; /* Green for navigation */
+    height: 50px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Main Content Area (GlavnaVsebina) */
+/* Main Content Area (GlavnaVsebina) */
+.GlavnaVsebina {
+    padding: 40px; /* Increased padding for more internal space */
+    max-width: 1400px; /* Increased max-width to make it wider */
+    /* Using a percentage like 90% or 95% can also be good for responsiveness: */
+    /* max-width: 95vw; */ /* Example: 95% of viewport width */
+    margin: 30px auto; /* Keeps it centered with the new width */
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    flex-grow: 1;
+}
+
+/* Section Title and Button Layout */
+.SekcijaNaslov {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #eee;
+    margin-bottom: 20px;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+.SekcijaNaslov h2 {
+    color: #2c3e50; /* Dark blue-gray for titles */
+    font-size: 1.8em;
+    margin: 0;
+    flex-shrink: 0; /* Prevent from shrinking */
+}
+
+
+/* --- General Button Styles --- */
+/* This will apply to all buttons by default. Specific classes can override. */
+button {
+    background-color: #1f7d2d; /* Green background from "Osveži" button */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    font-weight: normal; /* Override potential bold from other rules */
+    text-transform: none; /* Override potential uppercase from other rules */
+    letter-spacing: normal; /* Override potential letter-spacing */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for all buttons */
+}
+
+button:hover {
+    background-color: #1a6425; /* Darker green on hover */
+    transform: translateY(-1px); /* Slight lift effect */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* More prominent shadow on hover */
+}
+
+button:active {
+    transform: translateY(0); /* Press down effect */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) inset; /* Inset shadow */
+}
+
+
+/* Specific styles for the "Osveži" button (GumbDodaj button) - It inherits from the general `button` rule now */
+/* No specific style needed here unless it's different from the general button style */
+.GumbDodaj {
+    /* If you need spacing around the "Osveži" button when wrapped */
+    margin-top: 10px;
+}
+
+
+/* --- Table Styles --- */
+.PodatkiSkladisca {
+    overflow-x: auto; /* Enable horizontal scrolling for tables on small screens */
+    width: 100%;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse; /* Remove space between cells */
+    margin-top: 20px; /* Space above the table */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Subtle shadow for the whole table */
+    border-radius: 8px; /* Rounded corners for the table */
+    overflow: hidden; /* Ensures rounded corners apply to content */
+}
+
+th, td {
+    padding: 12px 15px; /* Ample padding for cell content */
+    text-align: left; /* Align text to the left */
+    border-bottom: 1px solid #ddd; /* Light separator line between rows */
+}
+
+thead tr {
+    background-color: #1f7d2d; /* Dark green background for header */
+    color: #ffffff; /* White text for header */
+}
+
+th {
+    font-weight: 600; /* Slightly bolder header text */
+    text-transform: uppercase; /* Uppercase header text */
+    font-size: 0.9em; /* Slightly smaller font for headers */
+    letter-spacing: 0.5px; /* Some letter spacing */
+    white-space: nowrap; /* Prevent header text from wrapping */
+}
+
+tbody tr:nth-child(even) {
+    background-color: #f8f8f8; /* Light gray background for even rows (zebra stripping) */
+}
+
+tbody tr:hover {
+    background-color: #f1f1f1; /* Slightly darker gray on row hover */
+    /* cursor: pointer; */ /* Removed as not all rows are necessarily clickable */
+}
+
+/* Styles for input fields during editing */
+.edit-input {
+    width: calc(100% - 10px); /* Adjust width to fit padding */
+    padding: 5px;
+    margin: -3px 0; /* Adjust margin to align with table cell */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    font-size: 1em; /* Match table text font size */
+    font-family: Arial, sans-serif;
+}
+
+/* Action button container within table cells */
+td[data-label="Akcija"] {
+    white-space: nowrap; /* Prevent buttons from wrapping to next line */
+}
+
+/* Specific styles for "Shrani" and "Prekliči" buttons in the table */
+/* These will override the general 'button' style for their specific colors */
+.shraniBtn {
+    background-color: #28a745; /* Green for save */
+    color: white;
+    margin-right: 5px; /* Space between Shrani and Prekliči */
+}
+
+.shraniBtn:hover {
+    background-color: #218838;
+}
+
+.prekliciBtn {
+    background-color: #dc3545; /* Red for cancel */
+    color: white;
+}
+
+.prekliciBtn:hover {
+    background-color: #c82333;
+}
+
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    .ZgornjaVrstica {
+        flex-direction: column;
+        align-items: center; /* Center items when stacked */
+        padding: 15px;
+    }
+
+    .ZgornjaVrstica .Logo {
+        margin-right: 0; /* Remove auto margin */
+        margin-bottom: 10px; /* Space below logo */
+    }
+
+    .ZgornjaVrstica .Naslov {
+        text-align: center;
+        width: 100%; /* Ensure title takes full width */
+    }
+
+    .ZgornjaVrstica .Naslov h1 {
+        font-size: 1.8em;
+    }
+
+    .GlavnaVsebina {
+        padding: 20px;
+        margin: 20px auto;
+    }
+
+    .SekcijaNaslov {
+        flex-direction: column;
+        align-items: flex-start; /* Align left when stacked */
+    }
+
+    .SekcijaNaslov h2 {
+        margin-bottom: 10px;
+        font-size: 1.5em;
+    }
+
+    .GumbDodaj {
+        width: 100%; /* Make button container full width */
+        text-align: center; /* Center the button within its container */
+    }
+
+    .GumbDodaj button {
+        width: 100%; /* Make the "Osveži" button full width */
+        padding: 12px 0; /* Adjust padding for full-width button */
+    }
+
+    /* Table specific responsive styles for smaller screens (Cards) */
+    table, thead, tbody, th, td, tr {
+        display: block; /* Make all table elements behave like block elements */
+    }
+
+    thead tr {
+        position: absolute; /* Hide the table header visually */
+        top: -9999px;
+        left: -9999px;
+    }
+
+    tr {
+        margin-bottom: 15px; /* Space between rows (which are now blocks) */
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #ffffff;
+    }
+
+    td {
+        border: none; /* Remove individual cell borders */
+        border-bottom: 1px solid #eee; /* Add border to bottom of each "fake" row */
+        position: relative;
+        padding-left: 50%; /* Make space for pseudo-elements */
+        text-align: right; /* Align value to the right */
+        word-wrap: break-word; /* Ensure content wraps */
+    }
+
+    td:last-child {
+        border-bottom: 0; /* No border on the last cell */
+    }
+
+    /* Label the data using data-label attribute */
+    td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 45%;
+        padding-left: 15px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 600;
+        color: #555;
+        background-color: #e9ecef;
+        padding-top: 12px; /* Match td padding */
+        padding-bottom: 12px; /* Match td padding */
+        height: 100%; /* Fill the height of the td */
+        box-sizing: border-box; /* Include padding in width/height */
+        display: flex; /* Use flex to vertically align content if needed */
+        align-items: center;
+    }
+
+    /* Ensure inputs fit within the responsive table cells */
+    .edit-input {
+        width: calc(100% - 10px);
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 480px) {
+    .ZgornjaVrstica {
+        padding: 10px;
+    }
+    .ZgornjaVrstica .Logo img {
+        height: 40px;
+    }
+    .ZgornjaVrstica .Naslov h1 {
+        font-size: 1.5em;
+    }
+    .GlavnaVsebina {
+        padding: 20px; /* Adjust padding for smaller screens if it became too much */
+        margin: 20px auto;
+    }
+    .SekcijaNaslov h2 {
+        font-size: 1.5em;
+    }
+
+    /* Adjust button padding for smaller screens */
+    td[data-label="Akcija"] button {
+        padding: 8px 12px;
+        font-size: 0.8em;
+        width: auto; /* Allow buttons to size naturally */
+        margin-right: 5px; /* Keep spacing between them */
+    }
+}
